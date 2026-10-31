@@ -1,5 +1,18 @@
 ﻿# Changelog
 
+## 0.3.8
+
+- Guard client registration and host setup so incompatible DSH versions cannot throw out of the plugin.
+- Back up and atomically replace the profile patch during manual installation.
+- Refuse manual install.cmd when the same plugin is already installed from npm.
+
+## 0.3.7
+
+- Add built-in PyPI mirrors (Tencent, Tsinghua) with automatic fallback.
+- Add NapCat GitHub proxy mirrors (gh-proxy.com, cors.isteed.cc, ghfast.top, ghproxy.net).
+- Add runtime version list and install-selected-version controls.
+- Add Python runtime mirrors (Huawei, Aliyun, npmmirror) and get-pip fallback.
+
 ## 0.3.6
 
 - Fully automatic DSH Provider configuration after the first AstrBot startup, with one automatic restart.

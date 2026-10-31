@@ -508,6 +508,7 @@ dialog.axn-webui-backdrop.is-maximized .axn-webui-modal{width:100vw;height:100vh
       const [createOpen, setCreateOpen] = useState(false)
       const [loading, setLoading] = useState(true)
       const [runtimeStatus, setRuntimeStatus] = useState({ a:null, n:null })
+      const [runtimeVersionChoice, setRuntimeVersionChoice] = useState({ a:'', n:'' })
       const [qqSessions, setQqSessions] = useState([])
       const [qqSelected, setQqSelected] = useState(null)
       const [qqLoading, setQqLoading] = useState(false)
@@ -793,22 +794,32 @@ dialog.axn-webui-backdrop.is-maximized .axn-webui-modal{width:100vw;height:100vh
         try {
           const info = await request('/runtime/versions?type=' + encodeURIComponent(type))
           setRuntimeStatus((prev)=>({ ...prev, [type]: info }))
+          const latestTag = (info.latest && info.latest.tag) || ''
+          setRuntimeVersionChoice((prev)=>({ ...prev, [type]: latestTag }))
           const label = type === 'a' ? 'AstrBot' : 'NapCat'
-          setNotice(label + ' 更新路径可用，最新版 ' + ((info.latest && info.latest.tag) || '-'))
+          setNotice(label + ' 更新路径可用，共 ' + ((info.remote || []).length) + ' 个版本，最新版 ' + (latestTag || '-'))
         } catch (e) { setError(e && e.message ? e.message : String(e)) }
         finally { setBusy('') }
       }
 
-      async function installLatestRuntime(type) {
+      async function installRuntime(type, tag) {
         if (busy) return
         setBusy('runtime-install:' + type)
         setError('')
         try {
-          const job = await request('/runtime/install', { method:'POST', headers:{ 'content-type':'application/json' }, body:JSON.stringify({ type, tag:'' }) })
+          const job = await request('/runtime/install', { method:'POST', headers:{ 'content-type':'application/json' }, body:JSON.stringify({ type, tag: tag || '' }) })
           setNotice((type === 'a' ? 'AstrBot' : 'NapCat') + ' 运行库安装任务已开始：' + job.step)
           await refresh(true)
         } catch (e) { setError(e && e.message ? e.message : String(e)) }
         finally { setBusy('') }
+      }
+
+      async function installLatestRuntime(type) { return installRuntime(type, '') }
+
+      async function installSelectedRuntime(type) {
+        const tag = runtimeVersionChoice[type] || (runtimeStatus[type] && runtimeStatus[type].latest && runtimeStatus[type].latest.tag) || ''
+        if (!tag) { setError('请先点击检测加载版本列表'); return }
+        return installRuntime(type, tag)
       }
 
       async function useLatestInstalledRuntime() {
@@ -1065,23 +1076,39 @@ dialog.axn-webui-backdrop.is-maximized .axn-webui-modal{width:100vw;height:100vh
                   h('label', { className:'axn-field wide' },
                     h('span', { className:'axn-label' }, 'AstrBot 更新路径'),
                     h('div', { style:{ display:'flex', gap:8, flexWrap:'wrap' } },
+                      h('select', { className:'axn-select', style:{ flex:'0 0 180px' }, defaultValue:'', disabled:Boolean(busy), onChange:(e)=>{ const input=document.getElementById('axn-runtime-source-a'); if(input && e.target.value) input.value=e.target.value } }, h('option', { value:'' }, '内置下载源'), (runtimeSources.presets && runtimeSources.presets.a || []).map((p)=>h('option', { key:p.source, value:p.source }, p.label))),
                       h('input', { id:'axn-runtime-source-a', className:'axn-input', style:{ flex:'1 1 360px' }, defaultValue: runtimeSources.a.source || '', disabled:Boolean(busy), placeholder:'https://pypi.org/simple/ or local wheelhouse' }),
                       h('button', { className:'axn-btn', disabled:Boolean(busy), onClick:()=>void saveRuntimeSource('a') }, busy === 'runtime-source:a' ? '保存中...' : '保存路径'),
                       h('button', { className:'axn-btn primary', disabled:Boolean(busy), onClick:()=>void checkRuntimeSource('a') }, busy === 'runtime-check:a' ? '检测中...' : '检测'),
                       h('button', { className:'axn-btn', disabled:Boolean(busy) || Boolean(activeRuntimeJob), onClick:()=>void installLatestRuntime('a') }, activeRuntimeJob && activeRuntimeJob.type === 'a' ? '安装中...' : '安装最新版'),
                     ),
                   ),
-                  runtimeStatus.a ? h('div', { className:'axn-notice axn-field wide' }, '路径可用：' + ((runtimeStatus.a.latest && runtimeStatus.a.latest.tag) || '-') + ' · 已安装：' + ((runtimeStatus.a.installed || []).join(', ') || '-')) : null,
+                  runtimeStatus.a ? h('div', { className:'axn-notice axn-field wide' }, '更新源：' + (runtimeStatus.a.source || runtimeSources.a.source) + ' · 可用版本：' + ((runtimeStatus.a.remote || []).length) + ' · 已安装：' + ((runtimeStatus.a.installed || []).join(', ') || '-')) : null,
+                  runtimeStatus.a && (runtimeStatus.a.remote || []).length ? h('div', { className:'axn-field wide', style:{ display:'flex', gap:8, flexWrap:'wrap', alignItems:'center' } },
+                    h('span', { className:'axn-label' }, '安装版本'),
+                    h('select', { className:'axn-select', style:{ flex:'1 1 260px' }, value:runtimeVersionChoice.a || (runtimeStatus.a.latest && runtimeStatus.a.latest.tag) || '', disabled:Boolean(busy) || Boolean(activeRuntimeJob), onChange:(e)=>setRuntimeVersionChoice((prev)=>({ ...prev, a:e.target.value })) },
+                      (runtimeStatus.a.remote || []).map((v)=>h('option', { key:v.tag, value:v.tag }, v.tag + (((runtimeStatus.a.installed || []).includes(v.tag)) ? ' (已安装)' : ''))),
+                    ),
+                    h('button', { className:'axn-btn primary', disabled:Boolean(busy) || Boolean(activeRuntimeJob), onClick:()=>void installSelectedRuntime('a') }, activeRuntimeJob && activeRuntimeJob.type === 'a' ? '安装中...' : '安装所选版本'),
+                  ) : null,
                   h('label', { className:'axn-field wide' },
                     h('span', { className:'axn-label' }, 'NapCat 更新路径'),
                     h('div', { style:{ display:'flex', gap:8, flexWrap:'wrap' } },
+                      h('select', { className:'axn-select', style:{ flex:'0 0 180px' }, defaultValue:'', disabled:Boolean(busy), onChange:(e)=>{ const input=document.getElementById('axn-runtime-source-n'); if(input && e.target.value) input.value=e.target.value } }, h('option', { value:'' }, '内置下载源'), (runtimeSources.presets && runtimeSources.presets.n || []).map((p)=>h('option', { key:p.source, value:p.source }, p.label))),
                       h('input', { id:'axn-runtime-source-n', className:'axn-input', style:{ flex:'1 1 360px' }, defaultValue: runtimeSources.n.source || '', disabled:Boolean(busy), placeholder:'https://api.github.com/ or mirror prefix or local NapCat.Shell.zip' }),
                       h('button', { className:'axn-btn', disabled:Boolean(busy), onClick:()=>void saveRuntimeSource('n') }, busy === 'runtime-source:n' ? '保存中...' : '保存路径'),
                       h('button', { className:'axn-btn primary', disabled:Boolean(busy), onClick:()=>void checkRuntimeSource('n') }, busy === 'runtime-check:n' ? '检测中...' : '检测'),
                       h('button', { className:'axn-btn', disabled:Boolean(busy) || Boolean(activeRuntimeJob), onClick:()=>void installLatestRuntime('n') }, activeRuntimeJob && activeRuntimeJob.type === 'n' ? '安装中...' : '安装最新版'),
                     ),
                   ),
-                  runtimeStatus.n ? h('div', { className:'axn-notice axn-field wide' }, '路径可用：' + ((runtimeStatus.n.latest && (runtimeStatus.n.latest.tag || runtimeStatus.n.latest.file)) || '-') + ' · 已安装：' + ((runtimeStatus.n.installed || []).join(', ') || '-')) : null,
+                  runtimeStatus.n ? h('div', { className:'axn-notice axn-field wide' }, '更新源：' + (runtimeStatus.n.source || runtimeSources.n.source) + ' · 可用版本：' + ((runtimeStatus.n.remote || []).length) + ' · 已安装：' + ((runtimeStatus.n.installed || []).join(', ') || '-')) : null,
+                  runtimeStatus.n && (runtimeStatus.n.remote || []).length ? h('div', { className:'axn-field wide', style:{ display:'flex', gap:8, flexWrap:'wrap', alignItems:'center' } },
+                    h('span', { className:'axn-label' }, '安装版本'),
+                    h('select', { className:'axn-select', style:{ flex:'1 1 260px' }, value:runtimeVersionChoice.n || (runtimeStatus.n.latest && runtimeStatus.n.latest.tag) || '', disabled:Boolean(busy) || Boolean(activeRuntimeJob), onChange:(e)=>setRuntimeVersionChoice((prev)=>({ ...prev, n:e.target.value })) },
+                      (runtimeStatus.n.remote || []).map((v)=>h('option', { key:v.tag, value:v.tag }, v.tag + (((runtimeStatus.n.installed || []).includes(v.tag)) ? ' (已安装)' : ''))),
+                    ),
+                    h('button', { className:'axn-btn primary', disabled:Boolean(busy) || Boolean(activeRuntimeJob), onClick:()=>void installSelectedRuntime('n') }, activeRuntimeJob && activeRuntimeJob.type === 'n' ? '安装中...' : '安装所选版本'),
+                  ) : null,
                   latestRuntimeJob ? h('div', { className:'axn-notice axn-field wide' }, (latestRuntimeJob.type === 'a' ? 'AstrBot' : 'NapCat') + ' 安装任务：' + latestRuntimeJob.status + ' · ' + latestRuntimeJob.step + (latestRuntimeJob.bytes ? ' · ' + formatBytes(latestRuntimeJob.bytes) : '') + (latestRuntimeJob.error ? ' · ' + latestRuntimeJob.error : '')) : null,
                   h('div', { className:'axn-sub axn-field wide' }, 'AstrBot: PyPI index URL / local wheelhouse. NapCat: GitHub API URL / mirror prefix / local zip.'),
                 ),
@@ -1135,16 +1162,24 @@ dialog.axn-webui-backdrop.is-maximized .axn-webui-modal{width:100vw;height:100vh
 
     const inject = ['slots']
     function apply(ctx) {
-      let styleNode = document.getElementById('dsh-astriax-native-style')
-      if (!styleNode) { styleNode = document.createElement('style'); styleNode.id = 'dsh-astriax-native-style'; document.head.append(styleNode) }
-      styleNode.textContent = css + webuiCss
-      ctx.slots.inject('settings.section', () => ctx.slots.register({
-        name:'settings.section',
-        id:'astriax-native',
-        order:26,
-        label:()=> 'AstriaX Native',
-        inject:()=>({}),
-      }, AstriaXNativePanel))
+      try {
+        if (!ctx || !ctx.slots || typeof ctx.slots.inject !== 'function' || typeof ctx.slots.register !== 'function') {
+          console.error('[astriax-native] client slots API unavailable; settings panel not registered')
+          return
+        }
+        let styleNode = document.getElementById('dsh-astriax-native-style')
+        if (!styleNode) { styleNode = document.createElement('style'); styleNode.id = 'dsh-astriax-native-style'; document.head.append(styleNode) }
+        styleNode.textContent = css + webuiCss
+        ctx.slots.inject('settings.section', () => ctx.slots.register({
+          name:'settings.section',
+          id:'astriax-native',
+          order:26,
+          label:()=> 'AstriaX Native',
+          inject:()=>({}),
+        }, AstriaXNativePanel))
+      } catch (error) {
+        console.error('[astriax-native] client registration failed: ' + (error && error.message ? error.message : error))
+      }
     }
     exports.apply = apply
     exports.inject = inject

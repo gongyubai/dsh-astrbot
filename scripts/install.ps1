@@ -12,6 +12,18 @@ $ErrorActionPreference = 'Stop'
 $PackageRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 $profileRoot = Join-Path $DshHome ('profiles\' + $Profile)
 if (-not (Test-Path $profileRoot)) { throw 'DSH profile not found: ' + $profileRoot }
+$profilePackage = Join-Path $profileRoot 'package.json'
+if (Test-Path $profilePackage) {
+  try {
+    $profileJson = Get-Content $profilePackage -Raw | ConvertFrom-Json
+    $existing = $profileJson.dependencies.'dsh-astriax-native'
+    if ($existing -and $existing -notlike 'link:*') {
+      throw 'This profile already installed dsh-astriax-native from npm. Use DSH Add Plugin instead of install.cmd, or remove it first.'
+    }
+  } catch {
+    if ($_.Exception.Message -like 'This profile already installed*') { throw }
+  }
+}
 $nodeModules = Join-Path $profileRoot 'node_modules'
 New-Item -ItemType Directory -Path $nodeModules -Force | Out-Null
 $target = Join-Path $nodeModules 'dsh-astriax-native'
@@ -36,9 +48,18 @@ $block = $begin + "`r`n" +
 '      name: dsh-astriax-native' + "`r`n" +
 $end
 $pattern = '(?s)' + [regex]::Escape($begin) + '.*?' + [regex]::Escape($end)
+$outside = $patch
+if ($patch -match $pattern) { $outside = [regex]::Replace($patch, $pattern, '') }
+if ($outside -match 'astriax-native-host|ui-settings-astriax-native') {
+  throw 'The profile already contains an AstriaX Native component outside the marked block. Remove the old duplicate block before installing.'
+}
 if ($patch -match $pattern) { $patch = [regex]::Replace($patch, $pattern, $block) }
-else { $patch = $patch.TrimEnd() + "`r`n`r`n" + $block + "`r`n" }
-[IO.File]::WriteAllText($patchFile, $patch, (New-Object Text.UTF8Encoding($false)))
+else { $patch = $patch.TrimEnd() + [Environment]::NewLine + [Environment]::NewLine + $block + [Environment]::NewLine }
+$patchBackup = $patchFile + '.bak-astriax-native-' + (Get-Date -Format 'yyyyMMdd-HHmmss')
+if (Test-Path $patchFile) { Copy-Item $patchFile $patchBackup -Force }
+$patchTemp = $patchFile + '.tmp-' + [guid]::NewGuid().ToString('N')
+[IO.File]::WriteAllText($patchTemp, $patch, (New-Object Text.UTF8Encoding($false)))
+Move-Item -Force $patchTemp $patchFile
 Write-Output ('profile patch updated: ' + $patchFile)
 $dataRoot = Join-Path $DshHome 'astriax-native'
 New-Item -ItemType Directory -Path (Join-Path $dataRoot 'bridge') -Force | Out-Null

@@ -27,12 +27,21 @@ Python, AstrBot and NapCat runtimes are not bundled. They are downloaded and
 installed into the plugin data directory on first use.
 
 ## Install
+Recommended installation is through DSH itself:
 
-1. Extract this folder to a stable location, for example:
-   `D:\Tools\dsh-astriax-native`.
+1. Open DSH -> Plugins -> Add plugin.
+2. Enter `dsh-astriax-native`.
+3. Install and fully restart DSH.
+
+Do **not** run `install.cmd` when the plugin was installed from npm. Choose one
+installation method only; mixing a manual junction with the DSH package manager
+can make the profile dependency layout inconsistent.
+
+For a manual portable install only:
+
+1. Extract this folder to a stable ASCII path, for example
+   `D:\DSH-Plugins\dsh-astriax-native`.
 2. Double-click `install.cmd`.
-   - If DSH is installed in a non-standard location, pass its executable:
-     `install.cmd -ElectronPath "D:\path\DeepSeek Harness.exe"`.
 3. Fully restart DSH.
 4. Open `Settings -> AstriaX Native`.
 
@@ -40,8 +49,7 @@ Default data root:
 
 `%USERPROFILE%\.dsh\astriax-native`
 
-The installer links the plugin into the selected DSH profile and starts the
-local bridge on `127.0.0.1:18081`.
+The installer backs up `cordis.patch.yml` before writing its marked block.
 
 ## First setup
 
