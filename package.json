@@ -1,6 +1,6 @@
 {
   "name": "dsh-astriax-native",
-  "version": "0.3.3",
+  "version": "0.3.4",
   "private": false,
   "type": "module",
   "description": "Native DSH plugin for AstrBot/NapCat management, QQ bridge, session panel, tool gateway and DSH provider integration.",

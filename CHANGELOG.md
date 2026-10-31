@@ -1,5 +1,10 @@
 ﻿# Changelog
 
+## 0.3.4
+
+- Hidden native NapCat/QQNT console windows while preserving NapCat logs.
+- Kept native NapCat direct startup for reliable login and OneBot pairing.
+
 ## 0.3.3
 
 - Fixed Unicode workspace paths selected through the Windows folder picker (UTF-8 Base64 transport).
