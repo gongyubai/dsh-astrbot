@@ -1,0 +1,7 @@
+﻿name: astrbot_plugin_dsh_gateway
+display_name: DSH Gateway
+author: DSH AstriaX Native
+version: "0.1.0"
+desc: "AstrBot outbound gateway used by DSH AstriaX Native."
+short_desc: "Send QQ messages from the DSH QQ session panel."
+astrbot_version: ">=4.0.0"

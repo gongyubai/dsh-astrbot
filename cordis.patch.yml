@@ -1,0 +1,12 @@
+﻿# DSH AstriaX Native — portable bundle
+# The host starts the local bridge automatically; data defaults to
+# %USERPROFILE%\.dsh\astriax-native.
+- insert:
+    - id: astriax-native-host
+      name: dsh-astriax-native/host
+      config:
+        watchdogMs: 10000
+        bridgePort: 18081
+        autoBridge: true
+    - id: ui-settings-astriax-native
+      name: dsh-astriax-native

@@ -1,0 +1,12 @@
+﻿node_modules/
+data/
+release/
+*.zip
+*.sha256
+*.log
+*.bak-*
+bridge/*.log
+bridge/bridge.pid
+settings.json
+qq-work/
+.DS_Store

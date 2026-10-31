@@ -1,0 +1,63 @@
+{
+  "name": "dsh-astriax-native",
+  "version": "0.3.3",
+  "private": false,
+  "type": "module",
+  "description": "Native DSH plugin for AstrBot/NapCat management, QQ bridge, session panel, tool gateway and DSH provider integration.",
+  "main": "./lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./host": "./lib/host.js",
+    "./client": "./client.js",
+    "./cordis.patch.yml": "./cordis.patch.yml",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib",
+    "client.js",
+    "cordis.patch.yml",
+    "README.md",
+    "LICENSE",
+    "THIRD_PARTY_NOTICES.md",
+    "assets",
+    "bridge",
+    "scripts",
+    "install.cmd",
+    "start-bridge.cmd",
+    "CHANGELOG.md"
+  ],
+  "dsh": {
+    "client": {
+      "inject": [
+        "@deepseek-ai/dsh-client-ui-settings"
+      ],
+      "platform": "web"
+    },
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "license": "MIT",
+  "author": "gongyubai",
+  "keywords": [
+    "dsh",
+    "deepseek-harness",
+    "astrbot",
+    "napcat",
+    "qq",
+    "astriax-native",
+    "plugin"
+  ],
+  "engines": {
+    "dsh": ">=0.1.5-rc.1"
+  },
+  "icon": "./assets/icon.svg",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/gongyubai/dsh-astrbot.git"
+  },
+  "homepage": "https://github.com/gongyubai/dsh-astrbot#readme",
+  "bugs": {
+    "url": "https://github.com/gongyubai/dsh-astrbot/issues"
+  }
+}

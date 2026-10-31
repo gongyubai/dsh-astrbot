@@ -1,0 +1,32 @@
+﻿# Changelog
+
+## 0.3.3
+
+- Fixed Unicode workspace paths selected through the Windows folder picker (UTF-8 Base64 transport).
+- Invalid replacement characters in persisted workspace paths now fall back to the default and self-heal.
+
+## 0.3.2
+
+- Added native AstrBot console-window suppression for local shell and restart subprocesses.
+- Added default tool-gateway filtering for shell/Python/file execution tools.
+- Fixed workspace path persistence and restored the default workspace.
+
+## 0.3.1
+
+- Added user-selectable QQ workspace root, Windows folder picker and automatic bridge restart.
+
+## 0.3.0
+
+- Added native AstrBot/NapCat pairing and OneBot cutover helpers.
+- Added automatic local bridge startup from the DSH host plugin.
+- Added generated shared `qq` DSH profile.
+- Added AstrBot tool gateway: DSH can request registered AstrBot tools.
+- Added AstrBot outbound gateway plugin and QQ panel send control.
+- Added QQ transcript persistence, per-session workspaces and clear action.
+- Added portable package metadata, icon, install/start scripts and marketplace metadata.
+
+## 0.2.0
+
+- Added Python/AstrBot/NapCat runtime provisioning.
+- Added DSH provider adapter and auto-configuration.
+- Added embedded WebUI proxy, backups and QQ session panel foundation.
