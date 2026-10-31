@@ -1,5 +1,13 @@
 ﻿# Changelog
 
+## 0.3.6
+
+- Fully automatic DSH Provider configuration after the first AstrBot startup, with one automatic restart.
+
+## 0.3.5
+
+- npm package release (same plugin code as 0.3.4).
+
 ## 0.3.4
 
 - Hidden native NapCat/QQNT console windows while preserving NapCat logs.

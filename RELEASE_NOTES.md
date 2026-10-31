@@ -1,4 +1,4 @@
-# DSH AstriaX Native 0.3.4
+# DSH AstriaX Native 0.3.5
 
 - Native AstrBot and NapCat instance manager with lifecycle, logs, config editing and backups.
 - Embedded AstrBot dashboard and NapCat WebUI proxy.
