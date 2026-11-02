@@ -1,4 +1,13 @@
-﻿# Changelog
+# Changelog
+
+## 0.3.9
+
+- NapCat: fixed the root cause of "start failed or timed out" — DSH runs with `ELECTRON_RUN_AS_NODE=1`, the injected `QQ.exe` inherited it, degraded to a plain Node process, and NapCat's worker died on launch, so the WebUI port never bound. The NapCat child now gets a sanitized environment.
+- NapCat: launch `NapCatWinBootMain.exe` directly instead of the official `launcher.bat`, matching AstriaX and avoiding the elevation console window plus registry-based QQ lookup.
+- NapCat: every start aligns the instance with AstriaX — runtime template `config`/`plugins`/`cache`/`logs`, `bypass.window=true`, `o3HookMode=0`, and a per-instance `webui.json` with its own port and token, so instances no longer fight over 6099.
+- NapCat: the QQ login window no longer pops up; login stays in the WebUI QR flow.
+- NapCat: record the injected QQ and injector PIDs and reap reparented orphan QQ processes on stop or failed start.
+- NapCat: wait up to 60s for the WebUI port while still treating a live process as started.
 
 ## 0.3.8
 

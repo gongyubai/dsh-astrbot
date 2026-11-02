@@ -1,4 +1,4 @@
-﻿[CmdletBinding()]
+[CmdletBinding()]
 param(
   [string]$Root = (Join-Path $env:USERPROFILE '.dsh\astriax-native'),
   [string]$ElectronPath = '',
@@ -32,7 +32,6 @@ if (-not $ElectronPath) {
 }
 if (-not $ElectronPath) {
   $candidates = @(
-    'D:\dsh\DeepSeek Harness.exe',
     (Join-Path $env:LOCALAPPDATA 'Programs\DeepSeek Harness\DeepSeek Harness.exe'),
     (Join-Path $env:ProgramFiles 'DeepSeek Harness\DeepSeek Harness.exe')
   )

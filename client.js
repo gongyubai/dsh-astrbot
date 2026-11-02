@@ -46,6 +46,8 @@ window.__ModuleLoader__.load({
 .axn-foot{display:flex;gap:7px;flex-wrap:wrap;align-items:center;margin-top:auto;padding-top:3px}
 .axn-empty{border:1px dashed var(--dsw-alias-border-l1,rgba(31,35,41,.18));border-radius:13px;padding:30px 20px;text-align:center;color:var(--dsw-alias-label-tertiary,#8a9099);font-size:12.5px}
 .axn-notice{border:1px solid color-mix(in srgb,var(--dsw-alias-button-info-fill,#2f6fed) 30%,transparent);background:color-mix(in srgb,var(--dsw-alias-button-info-fill,#2f6fed) 7%,transparent);border-radius:10px;padding:9px 11px;font-size:12px;line-height:1.5;word-break:break-word}
+.axn-progress{width:100%;height:8px;border-radius:999px;background:rgba(127,127,127,.18);overflow:hidden}.axn-progress span{display:block;height:100%;border-radius:999px;background:var(--dsw-alias-button-info-fill,#2f6fed);transition:width .25s ease}
+@keyframes axn-progress-indeterminate{0%{transform:translateX(-120%)}100%{transform:translateX(320%)}}.axn-progress.indeterminate span{width:35%;animation:axn-progress-indeterminate 1.15s ease-in-out infinite}
 .axn-notice.error{border-color:color-mix(in srgb,var(--dsw-alias-state-error-primary,#d92d20) 34%,transparent);background:color-mix(in srgb,var(--dsw-alias-state-error-primary,#d92d20) 7%,transparent);color:var(--dsw-alias-state-error-primary,#d92d20)}
 .axn-log{border:1px solid var(--dsw-alias-border-l1,rgba(31,35,41,.12));border-radius:12px;overflow:hidden;background:var(--dsw-alias-bg-layer-1,rgba(0,0,0,.04))}
 .axn-log-head{display:flex;align-items:center;gap:8px;padding:9px 11px;border-bottom:1px solid var(--dsw-alias-border-l2,rgba(31,35,41,.08));font-size:12px}
@@ -235,7 +237,7 @@ dialog.axn-webui-backdrop.is-maximized .axn-webui-modal{width:100vw;height:100vh
     function NewInstanceModal(props) {
       const runtimes = props.runtimes || { a: [], n: [] }
       const firstType = runtimes.a && runtimes.a.length ? 'a' : 'n'
-      const [form, setForm] = useState({ type: firstType, name: '', port: '', runtimeTag: (firstType === 'a' ? runtimes.a : runtimes.n)[0] || '', autoStart: false })
+      const [form, setForm] = useState({ type: firstType, name: '', port: '', qqAccount: '', runtimeTag: (firstType === 'a' ? runtimes.a : runtimes.n)[0] || '', autoStart: false })
       const tags = form.type === 'a' ? (runtimes.a || []) : (runtimes.n || [])
       useEffect(() => {
         if (!tags.includes(form.runtimeTag)) setForm((prev) => ({ ...prev, runtimeTag: tags[0] || '' }))
@@ -258,6 +260,10 @@ dialog.axn-webui-backdrop.is-maximized .axn-webui-modal{width:100vw;height:100vh
                 h('option', { value:'a' }, 'AstrBot'),
                 h('option', { value:'n' }, 'NapCat'),
               ),
+            ),
+            h('label', { className:'axn-field' },
+              h('span', { className:'axn-label' }, 'QQ account (quick login, optional)'),
+              h('input', { className:'axn-input', value:form.qqAccount, placeholder:'e.g. 123456789', disabled:props.busy, onChange:(e)=>change('qqAccount', e.target.value) }),
             ),
             h('label', { className:'axn-field' },
               h('span', { className:'axn-label' }, '名称'),
@@ -314,7 +320,11 @@ dialog.axn-webui-backdrop.is-maximized .axn-webui-modal{width:100vw;height:100vh
                 h('label', { className:'axn-field' }, h('span', { className:'axn-label' }, '端口'), h('input', { className:'axn-input', type:'number', min:1, max:65535, value:d.port, disabled:disabled || item.live, onChange:(e)=>props.onChange('port', e.target.value) })),
                 h('label', { className:'axn-field' }, h('span', { className:'axn-label' }, '运行库版本'), h('select', { className:'axn-select', value:d.runtimeTag, disabled:disabled || item.live, onChange:(e)=>props.onChange('runtimeTag', e.target.value) }, (d.runtimeOptions||[]).map((tag)=>h('option', { key:tag, value:tag }, tag)))),
                 h('div', { className:'axn-field' },
-                  h('label', { className:'axn-checkline' }, h('input', { type:'checkbox', checked:Boolean(d.autoStart), disabled, onChange:(e)=>props.onChange('autoStart', e.target.checked) }), 'DSH 启动时自动运行'),
+                  item.type === 'n' ? h('label', { className:'axn-field wide' },
+                  h('span', { className:'axn-label' }, 'QQ account (quick login, optional)'),
+                  h('input', { className:'axn-input', value:d.qqAccount || '', disabled, placeholder:'e.g. 123456789', onChange:(e)=>props.onChange('qqAccount', e.target.value) }),
+                ) : null,
+                h('label', { className:'axn-checkline' }, h('input', { type:'checkbox', checked:Boolean(d.autoStart), disabled, onChange:(e)=>props.onChange('autoStart', e.target.checked) }), 'DSH 启动时自动运行'),
                   h('label', { className:'axn-checkline' }, h('input', { type:'checkbox', checked:Boolean(d.autoRestart), disabled, onChange:(e)=>props.onChange('autoRestart', e.target.checked) }), '异常退出后自动重启'),
                 ),
                 h('div', { className:'axn-notice axn-field wide' }, '端口和运行库只能在不运行状态下修改。修改运行库会保留实例数据；OneBot 连接端口在配置文件中修改。'),
@@ -509,6 +519,8 @@ dialog.axn-webui-backdrop.is-maximized .axn-webui-modal{width:100vw;height:100vh
       const [loading, setLoading] = useState(true)
       const [runtimeStatus, setRuntimeStatus] = useState({ a:null, n:null })
       const [runtimeVersionChoice, setRuntimeVersionChoice] = useState({ a:'', n:'' })
+      const [speedResults, setSpeedResults] = useState({ a:null, n:null })
+      const [runtimeInventory, setRuntimeInventory] = useState({ a:null, n:null })
       const [qqSessions, setQqSessions] = useState([])
       const [qqSelected, setQqSelected] = useState(null)
       const [qqLoading, setQqLoading] = useState(false)
@@ -533,7 +545,7 @@ dialog.axn-webui-backdrop.is-maximized .axn-webui-modal{width:100vw;height:100vh
 
       useEffect(() => {
         void refresh(false)
-        const timer = setInterval(() => { void refresh(true) }, 5000)
+        const timer = setInterval(() => { void refresh(true) }, 1500)
         return () => clearInterval(timer)
       }, [refresh])
 
@@ -621,7 +633,7 @@ dialog.axn-webui-backdrop.is-maximized .axn-webui-modal{width:100vw;height:100vh
 
       async function openDetail(item) {
         setError('')
-        setDetail({ instance:item, tab:'settings', files:[], runtimeOptions:[], name:item.name, port:item.port, runtimeTag:item.runtimeTag, autoStart:item.autoStart, autoRestart:item.autoRestart, selectedFile:'', text:'', error:'', napcat:null, napcatError:'', candidates:[], peer:null, pairCandidate:'', dataRoot:data?.info?.dataRoot || '', backups:[], backupRoot:'', providerStatus:null })
+        setDetail({ instance:item, tab:'settings', files:[], runtimeOptions:[], name:item.name, port:item.port, qqAccount:item.qqAccount || '', runtimeTag:item.runtimeTag, autoStart:item.autoStart, autoRestart:item.autoRestart, selectedFile:'', text:'', error:'', napcat:null, napcatError:'', candidates:[], peer:null, pairCandidate:'', dataRoot:data?.info?.dataRoot || '', backups:[], backupRoot:'', providerStatus:null })
         try {
           const next = await request('/detail?id=' + encodeURIComponent(item.id))
           setDetail((prev) => prev ? {
@@ -632,6 +644,7 @@ dialog.axn-webui-backdrop.is-maximized .axn-webui-modal{width:100vw;height:100vh
             name:next.instance.name,
             port:next.instance.port,
             runtimeTag:next.instance.runtimeTag,
+            qqAccount:next.instance.qqAccount || '',
             autoStart:next.instance.autoStart,
             autoRestart:next.instance.autoRestart,
             candidates:next.candidates || [],
@@ -775,6 +788,72 @@ dialog.axn-webui-backdrop.is-maximized .axn-webui-modal{width:100vw;height:100vh
         a.remove()
       }
 
+      async function pickDataRoot() {
+        setBusy('data-root-pick')
+        setError('')
+        try {
+          const result = await request('/data-root/pick', { method:'POST', headers:{ 'content-type':'application/json' }, body:'{}' })
+          if (result && result.path) { const input = document.getElementById('axn-data-root'); if (input) input.value = result.path }
+        } catch (e) { setError(e && e.message ? e.message : String(e)) }
+        finally { setBusy('') }
+      }
+
+      async function saveDataRoot() {
+        const input = document.getElementById('axn-data-root')
+        const value = input ? input.value.trim() : ''
+        if (!value) { setError('请选择数据目录'); return }
+        if (!window.confirm('切换插件数据目录后需要完全重启 DSH，旧目录数据不会自动迁移。继续？')) return
+        setBusy('data-root-save')
+        setError('')
+        try {
+          const result = await request('/data-root', { method:'POST', headers:{ 'content-type':'application/json' }, body:JSON.stringify({ path:value }) })
+          setNotice(result && result.warning ? result.warning : '数据目录已保存，完全重启 DSH 后生效。')
+          await refresh(true)
+        } catch (e) { setError(e && e.message ? e.message : String(e)) }
+        finally { setBusy('') }
+      }
+
+      async function resetDataRoot() {
+        if (!window.confirm('恢复默认数据目录后需要完全重启 DSH，当前目录数据不会自动迁移。继续？')) return
+        setBusy('data-root-reset')
+        setError('')
+        try {
+          const result = await request('/data-root/reset', { method:'POST', headers:{ 'content-type':'application/json' }, body:'{}' })
+          setNotice(result && result.warning ? result.warning : '已恢复默认数据目录，完全重启 DSH 后生效。')
+          await refresh(true)
+        } catch (e) { setError(e && e.message ? e.message : String(e)) }
+        finally { setBusy('') }
+      }
+
+      async function pickImportPath(kind) {
+        setBusy('import-pick:' + kind)
+        setError('')
+        try {
+          const result = await request('/runtime/import/pick', { method:'POST', headers:{ 'content-type':'application/json' }, body:JSON.stringify({ kind }) })
+          if (result && result.path) { const input = document.getElementById('axn-import-path'); if (input) input.value = result.path }
+        } catch (e) { setError(e && e.message ? e.message : String(e)) }
+        finally { setBusy('') }
+      }
+
+      async function importRuntime() {
+        const typeEl = document.getElementById('axn-import-type')
+        const pathEl = document.getElementById('axn-import-path')
+        const tagEl = document.getElementById('axn-import-tag')
+        const type = typeEl ? typeEl.value : 'a'
+        const importPath = pathEl ? pathEl.value.trim() : ''
+        const tag = tagEl ? tagEl.value.trim() : ''
+        if (!importPath) { setError('请选择本地运行库文件或目录'); return }
+        setBusy('runtime-import')
+        setError('')
+        try {
+          const result = await request('/runtime/import', { method:'POST', headers:{ 'content-type':'application/json' }, body:JSON.stringify({ type, path:importPath, tag }) })
+          setNotice('本地运行库导入完成：' + (result.tag || result.path || type))
+          await refresh(true)
+          await loadRuntimeInventory(type === 'p' ? 'a' : type)
+        } catch (e) { setError(e && e.message ? e.message : String(e)) }
+        finally { setBusy('') }
+      }
+
       async function saveRuntimeSource(type) {
         const input = document.getElementById('axn-runtime-source-' + type)
         const source = input ? input.value : ''
@@ -798,6 +877,54 @@ dialog.axn-webui-backdrop.is-maximized .axn-webui-modal{width:100vw;height:100vh
           setRuntimeVersionChoice((prev)=>({ ...prev, [type]: latestTag }))
           const label = type === 'a' ? 'AstrBot' : 'NapCat'
           setNotice(label + ' 更新路径可用，共 ' + ((info.remote || []).length) + ' 个版本，最新版 ' + (latestTag || '-'))
+        } catch (e) { setError(e && e.message ? e.message : String(e)) }
+        finally { setBusy('') }
+      }
+
+      async function autoSelectRuntimeSource(type) {
+        setBusy('runtime-speed:' + type)
+        setError('')
+        try {
+          const info = await request('/runtime/source/auto', { method:'POST', headers:{ 'content-type':'application/json' }, body:JSON.stringify({ type }) })
+          setSpeedResults((prev)=>({ ...prev, [type]: info }))
+          const fastest = info && info.fastest
+          setNotice((type === 'a' ? 'AstrBot' : 'NapCat') + ' 自动测速完成' + (fastest ? '：' + fastest.label + '（' + fastest.ms + ' ms）' : '，没有可用源'))
+          if (fastest && fastest.source) { const input = document.getElementById('axn-runtime-source-' + type); if (input) input.value = fastest.source }
+          await refresh(true)
+        } catch (e) { setError(e && e.message ? e.message : String(e)) }
+        finally { setBusy('') }
+      }
+
+      async function cancelRuntimeInstall(id) {
+        setBusy('runtime-cancel')
+        try {
+          await request('/runtime/cancel', { method:'POST', headers:{ 'content-type':'application/json' }, body:JSON.stringify({ id }) })
+          setNotice('正在取消安装任务...')
+          await refresh(true)
+        } catch (e) { setError(e && e.message ? e.message : String(e)) }
+        finally { setBusy('') }
+      }
+
+      async function loadRuntimeInventory(type) {
+        setBusy('runtime-inventory:' + type)
+        setError('')
+        try {
+          const info = await request('/runtime/inventory?type=' + encodeURIComponent(type))
+          setRuntimeInventory((prev)=>({ ...prev, [type]: info }))
+        } catch (e) { setError(e && e.message ? e.message : String(e)) }
+        finally { setBusy('') }
+      }
+
+      async function deleteRuntime(type, tag) {
+        if (!window.confirm('删除已安装的 ' + (type === 'a' ? 'AstrBot ' : 'NapCat ') + tag + '？\n如果仍有实例使用它，删除会被拒绝。')) return
+        setBusy('runtime-delete:' + type)
+        setError('')
+        try {
+          await request('/runtime/delete', { method:'POST', headers:{ 'content-type':'application/json' }, body:JSON.stringify({ type, tag }) })
+          setNotice('已删除运行库 ' + tag)
+          setRuntimeInventory((prev)=>({ ...prev, [type]: null }))
+          await refresh(true)
+          await loadRuntimeInventory(type)
         } catch (e) { setError(e && e.message ? e.message : String(e)) }
         finally { setBusy('') }
       }
@@ -969,7 +1096,7 @@ dialog.axn-webui-backdrop.is-maximized .axn-webui-modal{width:100vw;height:100vh
         setBusy('settings')
         setDetail((prev)=>prev?{...prev,error:''}:prev)
         try {
-          await request('/update', { method:'POST', headers:{ 'content-type':'application/json' }, body:JSON.stringify({ id:detail.instance.id, name:detail.name, port:Number(detail.port), runtimeTag:detail.runtimeTag, autoStart:Boolean(detail.autoStart), autoRestart:Boolean(detail.autoRestart) }) })
+          await request('/update', { method:'POST', headers:{ 'content-type':'application/json' }, body:JSON.stringify({ id:detail.instance.id, name:detail.name, port:Number(detail.port), qqAccount:detail.qqAccount || '', runtimeTag:detail.runtimeTag, autoStart:Boolean(detail.autoStart), autoRestart:Boolean(detail.autoRestart) }) })
           setNotice('运行设置已保存。')
           await refresh(true)
           await openDetail({ ...detail.instance, origin:'managed' })
@@ -1080,37 +1207,96 @@ dialog.axn-webui-backdrop.is-maximized .axn-webui-modal{width:100vw;height:100vh
                       h('input', { id:'axn-runtime-source-a', className:'axn-input', style:{ flex:'1 1 360px' }, defaultValue: runtimeSources.a.source || '', disabled:Boolean(busy), placeholder:'https://pypi.org/simple/ or local wheelhouse' }),
                       h('button', { className:'axn-btn', disabled:Boolean(busy), onClick:()=>void saveRuntimeSource('a') }, busy === 'runtime-source:a' ? '保存中...' : '保存路径'),
                       h('button', { className:'axn-btn primary', disabled:Boolean(busy), onClick:()=>void checkRuntimeSource('a') }, busy === 'runtime-check:a' ? '检测中...' : '检测'),
+h('button', { className:'axn-btn', disabled:Boolean(busy) || Boolean(activeRuntimeJob), onClick:()=>void autoSelectRuntimeSource('a') }, busy === 'runtime-speed:a' ? '测速中...' : '自动测速'),
                       h('button', { className:'axn-btn', disabled:Boolean(busy) || Boolean(activeRuntimeJob), onClick:()=>void installLatestRuntime('a') }, activeRuntimeJob && activeRuntimeJob.type === 'a' ? '安装中...' : '安装最新版'),
                     ),
                   ),
                   runtimeStatus.a ? h('div', { className:'axn-notice axn-field wide' }, '更新源：' + (runtimeStatus.a.source || runtimeSources.a.source) + ' · 可用版本：' + ((runtimeStatus.a.remote || []).length) + ' · 已安装：' + ((runtimeStatus.a.installed || []).join(', ') || '-')) : null,
                   runtimeStatus.a && (runtimeStatus.a.remote || []).length ? h('div', { className:'axn-field wide', style:{ display:'flex', gap:8, flexWrap:'wrap', alignItems:'center' } },
                     h('span', { className:'axn-label' }, '安装版本'),
-                    h('select', { className:'axn-select', style:{ flex:'1 1 260px' }, value:runtimeVersionChoice.a || (runtimeStatus.a.latest && runtimeStatus.a.latest.tag) || '', disabled:Boolean(busy) || Boolean(activeRuntimeJob), onChange:(e)=>setRuntimeVersionChoice((prev)=>({ ...prev, a:e.target.value })) },
+                    h('select', { className:'axn-select', style:{ flex:'0 0 280px', width:'280px', maxWidth:'100%', height:'34px', minHeight:'34px', maxHeight:'34px', alignSelf:'center', padding:'4px 8px' }, value:runtimeVersionChoice.a || (runtimeStatus.a.latest && runtimeStatus.a.latest.tag) || '', disabled:Boolean(busy) || Boolean(activeRuntimeJob), onChange:(e)=>setRuntimeVersionChoice((prev)=>({ ...prev, a:e.target.value })) },
                       (runtimeStatus.a.remote || []).map((v)=>h('option', { key:v.tag, value:v.tag }, v.tag + (((runtimeStatus.a.installed || []).includes(v.tag)) ? ' (已安装)' : ''))),
                     ),
                     h('button', { className:'axn-btn primary', disabled:Boolean(busy) || Boolean(activeRuntimeJob), onClick:()=>void installSelectedRuntime('a') }, activeRuntimeJob && activeRuntimeJob.type === 'a' ? '安装中...' : '安装所选版本'),
                   ) : null,
-                  h('label', { className:'axn-field wide' },
+                  speedResults.a && speedResults.a.fastest ? h('div', { className:'axn-notice axn-field wide' }, '自动选择：' + speedResults.a.fastest.label + ' · ' + speedResults.a.fastest.ms + ' ms · ' + speedResults.a.fastest.source) : null,
+h('label', { className:'axn-field wide' },
                     h('span', { className:'axn-label' }, 'NapCat 更新路径'),
                     h('div', { style:{ display:'flex', gap:8, flexWrap:'wrap' } },
                       h('select', { className:'axn-select', style:{ flex:'0 0 180px' }, defaultValue:'', disabled:Boolean(busy), onChange:(e)=>{ const input=document.getElementById('axn-runtime-source-n'); if(input && e.target.value) input.value=e.target.value } }, h('option', { value:'' }, '内置下载源'), (runtimeSources.presets && runtimeSources.presets.n || []).map((p)=>h('option', { key:p.source, value:p.source }, p.label))),
                       h('input', { id:'axn-runtime-source-n', className:'axn-input', style:{ flex:'1 1 360px' }, defaultValue: runtimeSources.n.source || '', disabled:Boolean(busy), placeholder:'https://api.github.com/ or mirror prefix or local NapCat.Shell.zip' }),
                       h('button', { className:'axn-btn', disabled:Boolean(busy), onClick:()=>void saveRuntimeSource('n') }, busy === 'runtime-source:n' ? '保存中...' : '保存路径'),
                       h('button', { className:'axn-btn primary', disabled:Boolean(busy), onClick:()=>void checkRuntimeSource('n') }, busy === 'runtime-check:n' ? '检测中...' : '检测'),
+h('button', { className:'axn-btn', disabled:Boolean(busy) || Boolean(activeRuntimeJob), onClick:()=>void autoSelectRuntimeSource('n') }, busy === 'runtime-speed:n' ? '测速中...' : '自动测速'),
                       h('button', { className:'axn-btn', disabled:Boolean(busy) || Boolean(activeRuntimeJob), onClick:()=>void installLatestRuntime('n') }, activeRuntimeJob && activeRuntimeJob.type === 'n' ? '安装中...' : '安装最新版'),
                     ),
                   ),
                   runtimeStatus.n ? h('div', { className:'axn-notice axn-field wide' }, '更新源：' + (runtimeStatus.n.source || runtimeSources.n.source) + ' · 可用版本：' + ((runtimeStatus.n.remote || []).length) + ' · 已安装：' + ((runtimeStatus.n.installed || []).join(', ') || '-')) : null,
                   runtimeStatus.n && (runtimeStatus.n.remote || []).length ? h('div', { className:'axn-field wide', style:{ display:'flex', gap:8, flexWrap:'wrap', alignItems:'center' } },
                     h('span', { className:'axn-label' }, '安装版本'),
-                    h('select', { className:'axn-select', style:{ flex:'1 1 260px' }, value:runtimeVersionChoice.n || (runtimeStatus.n.latest && runtimeStatus.n.latest.tag) || '', disabled:Boolean(busy) || Boolean(activeRuntimeJob), onChange:(e)=>setRuntimeVersionChoice((prev)=>({ ...prev, n:e.target.value })) },
+                    h('select', { className:'axn-select', style:{ flex:'0 0 280px', width:'280px', maxWidth:'100%', height:'34px', minHeight:'34px', maxHeight:'34px', alignSelf:'center', padding:'4px 8px' }, value:runtimeVersionChoice.n || (runtimeStatus.n.latest && runtimeStatus.n.latest.tag) || '', disabled:Boolean(busy) || Boolean(activeRuntimeJob), onChange:(e)=>setRuntimeVersionChoice((prev)=>({ ...prev, n:e.target.value })) },
                       (runtimeStatus.n.remote || []).map((v)=>h('option', { key:v.tag, value:v.tag }, v.tag + (((runtimeStatus.n.installed || []).includes(v.tag)) ? ' (已安装)' : ''))),
                     ),
                     h('button', { className:'axn-btn primary', disabled:Boolean(busy) || Boolean(activeRuntimeJob), onClick:()=>void installSelectedRuntime('n') }, activeRuntimeJob && activeRuntimeJob.type === 'n' ? '安装中...' : '安装所选版本'),
                   ) : null,
-                  latestRuntimeJob ? h('div', { className:'axn-notice axn-field wide' }, (latestRuntimeJob.type === 'a' ? 'AstrBot' : 'NapCat') + ' 安装任务：' + latestRuntimeJob.status + ' · ' + latestRuntimeJob.step + (latestRuntimeJob.bytes ? ' · ' + formatBytes(latestRuntimeJob.bytes) : '') + (latestRuntimeJob.error ? ' · ' + latestRuntimeJob.error : '')) : null,
+                  speedResults.n && speedResults.n.fastest ? h('div', { className:'axn-notice axn-field wide' }, '自动选择：' + speedResults.n.fastest.label + ' · ' + speedResults.n.fastest.ms + ' ms · ' + speedResults.n.fastest.source) : null,
+latestRuntimeJob ? h('div', { className:'axn-notice axn-field wide' }, (latestRuntimeJob.type === 'a' ? 'AstrBot' : 'NapCat') + ' 安装任务：' + latestRuntimeJob.status + ' · ' + latestRuntimeJob.step + (latestRuntimeJob.bytes ? ' · ' + formatBytes(latestRuntimeJob.bytes) : '') + (latestRuntimeJob.error ? ' · ' + latestRuntimeJob.error : '')) : null,
+                  latestRuntimeJob ? h('div', { className:'axn-field wide', style:{ display:'flex', flexDirection:'column', gap:6 } },
+                    latestRuntimeJob.totalPackages ? h('div', { className:'axn-sub' }, '总体进度 ' + (latestRuntimeJob.overallPercent != null ? latestRuntimeJob.overallPercent + '%' : '解析中') + ' · ' + (latestRuntimeJob.collectedPackages || 0) + '/' + latestRuntimeJob.totalPackages + ' 个依赖') : null,
+                    latestRuntimeJob.totalPackages ? h('div', { className:'axn-progress' }, h('span', { style:{ width: (latestRuntimeJob.overallPercent != null ? latestRuntimeJob.overallPercent : 0) + '%' } })) : null,
+                    h('div', { style:{ display:'flex', justifyContent:'space-between', gap:8, flexWrap:'wrap', fontSize:'12px' } },
+                      h('span', null, (latestRuntimeJob.phase === 'resolving' ? '依赖解析 ' : latestRuntimeJob.phase === 'pip' ? '当前文件进度 ' : '下载进度 ') + (latestRuntimeJob.percent != null ? latestRuntimeJob.percent + '%' : '处理中') + (latestRuntimeJob.startedAt ? ' · ' + Math.max(0, Math.round((Date.now() - Date.parse(latestRuntimeJob.startedAt)) / 1000)) + 's' : '')),
+                      h('span', null, (latestRuntimeJob.total ? formatBytes(latestRuntimeJob.bytes || 0) + ' / ' + formatBytes(latestRuntimeJob.total) : (latestRuntimeJob.bytes ? formatBytes(latestRuntimeJob.bytes) : '')) + (latestRuntimeJob.speed ? ' · ' + formatBytes(latestRuntimeJob.speed) + '/s' : '')),
+                    ),
+                    h('div', { className:'axn-progress' + (latestRuntimeJob.percent == null ? ' indeterminate' : '') }, h('span', { style:{ width: (latestRuntimeJob.percent != null ? latestRuntimeJob.percent : 35) + '%' } })),
+                    latestRuntimeJob.status === 'running' || latestRuntimeJob.status === 'cancelling' ? h('button', { className:'axn-btn danger', disabled:Boolean(busy), onClick:()=>void cancelRuntimeInstall(latestRuntimeJob.id) }, latestRuntimeJob.status === 'cancelling' ? '取消中...' : '取消安装') : null,
+                    latestRuntimeJob.detail ? h('div', { className:'axn-sub' }, latestRuntimeJob.detail) : null,
+                    latestRuntimeJob.source || latestRuntimeJob.url ? h('div', { className:'axn-sub', style:{ wordBreak:'break-all' } }, latestRuntimeJob.source || latestRuntimeJob.url) : null,
+                  ) : null,
                   h('div', { className:'axn-sub axn-field wide' }, 'AstrBot: PyPI index URL / local wheelhouse. NapCat: GitHub API URL / mirror prefix / local zip.'),
+                ),
+              ),
+              h('div', { className:'axn-card' },
+                h('div', { className:'axn-card-head' }, h('div', { className:'axn-card-title' }, h('h3', { className:'axn-name' }, '本地导入运行库'), h('div', { className:'axn-id' }, 'ZIP / DIRECTORY')), h('span', { className:'axn-badge' }, 'IMPORT')),
+                h('div', { className:'axn-form' },
+                  h('label', { className:'axn-field' },
+                    h('span', { className:'axn-label' }, '类型'),
+                    h('select', { id:'axn-import-type', className:'axn-select', defaultValue:'a' },
+                      h('option', { value:'a' }, 'AstrBot 运行库'),
+                      h('option', { value:'n' }, 'NapCat 运行库'),
+                      h('option', { value:'p' }, 'Python 运行库'),
+                    ),
+                  ),
+                  h('label', { className:'axn-field' },
+                    h('span', { className:'axn-label' }, '版本标签（可选）'),
+                    h('input', { id:'axn-import-tag', className:'axn-input', placeholder:'例如 v4.28.2' }),
+                  ),
+                  h('label', { className:'axn-field wide' },
+                    h('span', { className:'axn-label' }, '本地文件或目录'),
+                    h('div', { style:{ display:'flex', gap:8, flexWrap:'wrap' } },
+                      h('input', { id:'axn-import-path', className:'axn-input', style:{ flex:'1 1 420px' }, placeholder:'D:\\Runtimes\\AstrBot-v4.28.2 或 .zip' }),
+                      h('button', { className:'axn-btn', disabled:Boolean(busy), onClick:()=>void pickImportPath('file') }, '选择文件'),
+                      h('button', { className:'axn-btn', disabled:Boolean(busy), onClick:()=>void pickImportPath('folder') }, '选择目录'),
+                      h('button', { className:'axn-btn primary', disabled:Boolean(busy), onClick:()=>void importRuntime() }, busy === 'runtime-import' ? '导入中...' : '导入'),
+                    ),
+                  ),
+                  h('div', { className:'axn-sub axn-field wide' }, 'AstrBot 目录需包含 astrbot/；NapCat 目录需包含 napcat.mjs；Python 目录需包含 python.exe。支持 zip。'),
+                ),
+              ),
+              h('div', { className:'axn-card' },
+                h('div', { className:'axn-card-head' }, h('div', { className:'axn-card-title' }, h('h3', { className:'axn-name' }, '插件数据目录'), h('div', { className:'axn-id' }, info.dataRootPending ? 'PENDING' : 'CURRENT')), h('span', { className:'axn-badge' }, info.dataRootPending ? 'PENDING' : 'READY')),
+                h('div', { className:'axn-form' },
+                  h('label', { className:'axn-field wide' },
+                    h('span', { className:'axn-label' }, '数据目录'),
+                    h('div', { style:{ display:'flex', gap:8, flexWrap:'wrap' } },
+                      h('input', { id:'axn-data-root', className:'axn-input', style:{ flex:'1 1 420px' }, defaultValue:info.dataRootPending || info.dataRoot || '', disabled:Boolean(busy), placeholder:'例如 D:\\DSH-Data\\astriax-native' }),
+                      h('button', { className:'axn-btn', disabled:Boolean(busy), onClick:()=>void pickDataRoot() }, busy === 'data-root-pick' ? '选择中...' : '选择目录'),
+                      h('button', { className:'axn-btn primary', disabled:Boolean(busy), onClick:()=>void saveDataRoot() }, busy === 'data-root-save' ? '保存中...' : '保存目录'),
+                      h('button', { className:'axn-btn', disabled:Boolean(busy), onClick:()=>void resetDataRoot() }, busy === 'data-root-reset' ? '恢复中...' : '恢复默认'),
+                    ),
+                  ),
+                  h('div', { className:'axn-sub axn-field wide' }, '保存后完全重启 DSH 生效；不会自动迁移旧数据。当前：' + (info.dataRoot || '-') + (info.dataRootPending ? '；待切换：' + info.dataRootPending : '')),
+                  h('div', { className:'axn-sub axn-field wide' }, '数据目录指针：' + (info.dataRootLocation || '-')),
                 ),
               ),
               h('div', { className:'axn-card' },
@@ -1123,7 +1309,7 @@ dialog.axn-webui-backdrop.is-maximized .axn-webui-modal{width:100vw;height:100vh
                   h('span', { className:'axn-sub' }, canBootstrap ? '来源可用' : '来源不可用，后续可接下载安装'),
                 ),
               ),
-              info.dataRoot ? h('div', { className:'axn-sub' }, 'DSH 数据目录：' + info.dataRoot) : null,
+              
             ),
         log ? h(LogPanel, { log, onRefresh:()=>{ const item = instances.find((x)=>x.id===log.id); if(item) void openLog(item) }, onClose:()=>setLog(null) }) : null,
         webui ? h(WebUiModal, { webui, onClose:()=>setWebui(null), onReload:()=>void reloadWebui(), onExternal:(url)=>openExternalWebui(url), onCopyToken:(text)=>void copyText(text, 'WebUI Token'), onCopyText:(text,label)=>void copyText(text, label) }) : null,
@@ -1154,7 +1340,7 @@ dialog.axn-webui-backdrop.is-maximized .axn-webui-modal{width:100vw;height:100vh
           onUseLatestRuntime:()=>void useLatestInstalledRuntime(),
         }) : null,
         h('div', { className:'axn-sub', style:{ display:'flex', justifyContent:'space-between', gap:10, flexWrap:'wrap' } },
-          h('span', null, '数据目录：' + (info.dataRoot || '-')),
+          
           h('span', null, '任务 ' + jobs.length + ' · ' + (data?.time ? formatTime(data.time) : '')),
         ),
       )
